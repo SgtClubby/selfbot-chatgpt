@@ -7,9 +7,10 @@
 // Add: Add should take in an object and add it to the database
 // Update: Update should take in an object and update it in the database, having an argument to specify which field to update and what to update it to
 // Remove: Remove should take in an string and remove it from the database using the steamid as the identifier
-const { Convo } = require("./schema.js");
+const { Convo, Crash } = require("./schema.js");
 
-class db {
+
+class MongoDB {
     constructor() {
         this.Player = Player;
     }
@@ -29,7 +30,18 @@ class db {
         return removedConvo;
     }
     
+    static async saveLastCrash(errorMessage, convo, details) {
+        const crashObj = {
+            _id: new Date(),
+            error: errorMessage,
+            convo: convo,
+            details: JSON.stringify(details)
+        }
+
+        const newCrash = new Crash(crashObj);
+        return await newCrash.save();
+    }
 
 }
 
-module.exports = db ;
+module.exports = MongoDB;
