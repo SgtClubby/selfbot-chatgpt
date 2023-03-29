@@ -2,7 +2,7 @@
 const { Client } = require('discord.js-selfbot-v13');
 require('dotenv').config();
 const { Configuration, OpenAIApi } = require('openai');
-const { clearConvo, addConvo, getConvo } = require("./mongo/mongo.js");
+const { clearConvo, addConvo, getConvo, saveLastCrash } = require("./mongo/mongo.js");
 
 const client = new Client({
     checkUpdate: false,
@@ -72,17 +72,20 @@ client.on('messageCreate', message => {
 
     // send typing indicator
     message.channel.sendTyping();
-
+    
     // send prompt to openai
     openai.createChatCompletion({
         model: "gpt-3.5-turbo",
         messages: convo,
     }).catch((e) => {
+        saveLastCrash(e.message, convo, e)
         return message.channel.send("An error occurred: " + e.message + "\n");
     }).then(ChatGPT => {
-
-        const ChatGPTMessage = ChatGPT.data.choices[0].message;
-        
+        const ChatGPTMessage = ChatGPT?.data?.choices[0]?.message;
+        if (!ChatGPTMessage) {
+            saveLastCrash("No response from OpenAI", convo, ChatGPT)
+            return message.channel.send("An error occurred: No response from OpenAI.");
+        }
         const assistant = {
             "role": "assistant",
             "content": ChatGPTMessage.content
