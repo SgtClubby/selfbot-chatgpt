@@ -52,8 +52,20 @@ client.on('messageCreate', message => {
 
     // create an image
     if (args[0] === "image") {
-        args.shift();
-        return createImage(args.join(" "), message);
+        try {
+            const number = parseInt(args[1]);
+            if (typeof number === "number" && !isNaN(number)) {
+                if (number > 10) return message.channel.send("Please provide a number between 1 and 10.");
+                args.shift();
+                args.shift();
+                return createImage(args.join(" "), message, number);
+            } else {
+                args.shift();
+                return createImage(args.join(" "), message);
+            }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
 
@@ -110,7 +122,6 @@ client.on('messageCreate', message => {
     })
 });
 
-
 function showConvo(conversation, arg, message) {
     let chunk = "";
     let chunkCount = 0;
@@ -141,18 +152,53 @@ function showConvo(conversation, arg, message) {
     });
 }
 
-function createImage(prompt, message) {
+function createImage(prompt, message, number = 1) {
     if (!prompt) return message.channel.send("Please provide a prompt.");
     const imagePrompt = {
         "prompt": prompt,
-        "n": 1,
+        "n": number,
         "size": "512x512",
         "response_format": "url",
-        "user": "user"
     }
 
     message.channel.sendTyping();
     return openai.createImage(imagePrompt).then(res => {
-        return message.channel.send(res.data.data[0].url);
+        if (res.data.data.length > 1) {
+            res.data.data.forEach(image => {
+                let filename = extractImgID(image.url);
+
+                if (filename === null) filename = new Date().getTime() + ".png";
+
+                download(image.url, filename, function(){
+                    return message.channel.send(`https://cdn.metrix.pw/chatgpt/${filename}`);
+                });
+            });
+            return;
+        }
+        const filename = extractImgID(res.data.data[0].url);
+
+        download(res.data.data[0].url, filename, function(){
+            return message.channel.send(`https://cdn.metrix.pw/chatgpt/${filename}`);
+        });
     })
+}
+
+const  fs = require('fs');
+const request = require('request');
+
+var download = function(uri, filename, callback){
+  request.head(uri, function(err, res, body){
+    request(uri).pipe(fs.createWriteStream(`/home/ftpuser/chatgpt/${filename}`)).on('close', callback);
+  });
+};
+
+function extractImgID(string) {
+    const regex = /\/([\w-]+\.png)\?/
+    const found = string.match(regex);
+
+    if (found) {
+        return found[1];
+    }
+    
+    return null;
 }
