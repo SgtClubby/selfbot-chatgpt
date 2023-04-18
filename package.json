@@ -1,0 +1,26 @@
+{
+  "name": "selfbot-chatgpt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SgtClubby/selfbot-chatgpt.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SgtClubby/selfbot-chatgpt/issues"
+  },
+  "homepage": "https://github.com/SgtClubby/selfbot-chatgpt#readme",
+  "dependencies": {
+    "discord.js-selfbot-v13": "^2.13.3",
+    "dotenv": "^16.0.3",
+    "mongoose": "^7.0.4",
+    "openai": "^3.2.1",
+    "request": "^2.88.2"
+  }
+}
