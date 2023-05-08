@@ -49,7 +49,15 @@ client.on('messageCreate', message => {
         clearConvo()
         return message.channel.send("Conversation cleared.");
     }
-
+    if (args[0] === "tts") {
+        args.shift();
+        const lang = args[0];
+        args.shift();
+        const text = args.join(" ");
+        if (!text) return message.channel.send("Please provide a prompt.");
+        if (!lang) return message.channel.send("Please provide a language code. Example: ?c tts en \"Hello World\".\nFor a list of language codes, visit https://cloud.google.com/translate/docs/languages");
+        return textToSpeech(text, message, lang);
+    }
     // create an image
     if (args[0] === "image") {
         try {
@@ -91,7 +99,7 @@ client.on('messageCreate', message => {
         messages: convo,
     }).catch((e) => {
         saveLastCrash(e.message, convo, e)
-        return message.channel.send("An error occurred: " + e.message + "\n");
+        return message.reply({content: "An error occurred: " + e.response.data.error.message}, {allowedMentions: {repliedUser: true}});
     }).then(ChatGPT => {
         const ChatGPTMessage = ChatGPT?.data?.choices[0]?.message;
         if (!ChatGPTMessage) {
@@ -111,6 +119,7 @@ client.on('messageCreate', message => {
             });
         } else {
             message.channel.send(ChatGPTMessage.content);
+            // textToSpeech(ChatGPTMessage.content, message);
         }
         // add assistant prompt to conversation history
         convo.push(assistant);
@@ -167,7 +176,8 @@ function createImage(prompt, message, number = 1) {
             res.data.data.forEach(image => {
                 let filename = extractImgID(image.url);
 
-                if (filename === null) filename = new Date().getTime() + ".png";
+                // Fall back to timestamp if no filename is provided
+                if (!filename) filename = new Date().getTime() + ".png";
 
                 download(image.url, filename, function(){
                     return message.channel.send(`https://cdn.metrix.pw/chatgpt/${filename}`);
@@ -180,7 +190,10 @@ function createImage(prompt, message, number = 1) {
         download(res.data.data[0].url, filename, function(){
             return message.channel.send(`https://cdn.metrix.pw/chatgpt/${filename}`);
         });
-    })
+    }).catch(e => {
+        console.log(e.response.data.error.message);
+        return message.reply({content: "An error occurred: " + e.response.data.error.message}, {allowedMentions: {repliedUser: true}});
+    });
 }
 
 const  fs = require('fs');
@@ -201,4 +214,18 @@ function extractImgID(string) {
     }
     
     return null;
+}
+
+const gTTS = require('gtts');
+
+function textToSpeech(text, message) {
+    const filename = new Date().getTime() + ".mp3";
+
+    const gtts = new gTTS(text, 'fi');
+    gtts.save(`/home/ftpuser/chatgpt/${filename}`, function (err, result) {
+        if(err) throw new Error(err) 
+        message.channel.send({
+            files: ['/home/ftpuser/chatgpt/' + filename]
+        });
+    });
 }
